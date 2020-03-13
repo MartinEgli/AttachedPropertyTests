@@ -4,6 +4,8 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using System.ComponentModel;
+
 namespace AttachedPropertyTests
 {
     using System;
@@ -27,6 +29,17 @@ namespace AttachedPropertyTests
                 return (T)obj.GetValue(property);
             else
                 return (T)obj.Dispatcher.Invoke(new Func<object>(() => obj.GetValue(property)));
+        }
+
+
+        public static void RegisterDependencyPropertyChanged<T>(this DependencyObject obj, DependencyProperty property)
+        {
+          var desc =  DependencyPropertyDescriptor.FromProperty(property, typeof(T));
+            desc.AddValueChanged(obj, Handler);
+        }
+
+        private static void Handler(object sender, EventArgs e)
+        {
         }
 
         /// <summary>

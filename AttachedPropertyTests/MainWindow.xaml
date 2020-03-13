@@ -1,4 +1,5 @@
-﻿<Window
+﻿
+<Window
     x:Class="AttachedPropertyTests.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -9,9 +10,33 @@
     Width="800"
     Height="450"
     mc:Ignorable="d">
-    <StackPanel x:Name="t1" local:TestClass.Test="abc">
-        <TextBlock Text="{Binding Path=(local:TestClass.Source)}" />
+    <WrapPanel>
+        <!--<StackPanel x:Name="t1" local:AttachedString.Setter="abc">
+        <Label>Test Text:</Label>
+        <TextBlock Text="{local:AttachedStringGetterMarkup}" />
+        <StackPanel local:AttachedString.Setter="xyz">
+            <Label>Test Text:</Label>
+            <TextBlock Text="{local:AttachedStringGetterMarkup}" />
+        </StackPanel>
+         <TextBlock Text="{local:AttachedStringGetterMarkup}" />
 
-        <TextBlock Text="{Binding Path=(local:TestClass.Test), ElementName=t1}" />
-    </StackPanel>
+        </StackPanel>-->
+        <!--<StackPanel local:AttachedString.Setter="xyz">
+            <Label>Test Text:</Label>
+            <TextBlock Text="{local:AttachedStringGetterMarkup}" />
+        </StackPanel>-->
+        <TextBox x:Name="TextBox">Hallo</TextBox>
+        <TextBox />
+
+
+        <StackPanel local:AttachedBindingString.Setter="{Binding Text, ElementName=TextBox}">
+            <Label>Test Text:</Label>
+            <TextBlock Text="{local:AttachedBindingStringGetter}" />
+            <TextBlock Text="{local:AttachedBindingStringGetter}" />
+            <TextBlock Text="{local:AttachedBindingStringGetter}" />
+            <TextBlock Text="{local:AttachedBindingStringGetter}" />
+            <TextBlock Text="{local:AttachedBindingStringGetter}" />
+        </StackPanel>
+
+    </WrapPanel>
 </Window>

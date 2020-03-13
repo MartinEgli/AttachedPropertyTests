@@ -4,6 +4,8 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using System.ComponentModel;
+
 namespace AttachedPropertyTests
 {
     using System;
@@ -29,52 +31,54 @@ namespace AttachedPropertyTests
             Action<DependencyObject> parentChangedAction,
             ParentNotifiers parentNotifiers)
         {
-            var ret = default(T);
-
-            if (target == null) return ret;
-
-            var depObj = target;
+            var result = default(T);
+            if (target == null) return result;
+            if (getFunction == null) throw new ArgumentNullException(nameof(getFunction));
+            if (parentChangedAction == null) throw new ArgumentNullException(nameof(parentChangedAction));
+            if (parentNotifiers == null) throw new ArgumentNullException(nameof(parentNotifiers));
+            
+            var dependencyObject = target;
             var weakTarget = new WeakReference(target);
 
-            while (ret == null)
+            while (result == null)
             {
                 // Try to get the value using the provided GetFunction.
-                ret = getFunction(depObj);
+                result = getFunction(dependencyObject);
 
-                if (ret != null && parentNotifiers.ContainsKey(target))
+                if (result != null && parentNotifiers.ContainsKey(target))
                     parentNotifiers.Remove(target);
 
                 // Try to get the parent using the visual tree helper. This may fail on some occations.
-                if (depObj is System.Windows.Controls.ToolTip)
+                if (dependencyObject is System.Windows.Controls.ToolTip)
                     break;
 
-                if (!(depObj is Visual) && !(depObj is Visual3D) && !(depObj is FrameworkContentElement))
+                if (!(dependencyObject is Visual) && !(dependencyObject is Visual3D) && !(dependencyObject is FrameworkContentElement))
                     break;
 
-                if (depObj is Window)
+                if (dependencyObject is Window)
                     break;
 
-                DependencyObject depObjParent;
+                DependencyObject parent;
 
-                if (depObj is FrameworkContentElement element)
-                    depObjParent = element.Parent;
+                if (dependencyObject is FrameworkContentElement element)
+                    parent = element.Parent;
                 else
                 {
                     try
                     {
-                        depObjParent = depObj.GetParent(false);
+                        parent = dependencyObject.GetParent(false);
                     }
                     catch
                     {
-                        depObjParent = null;
+                        parent = null;
                     }
                 }
 
-                if (depObjParent == null)
+                if (parent == null)
                 {
                     try
                     {
-                        depObjParent = depObj.GetParent(true);
+                        parent = dependencyObject.GetParent(true);
                     }
                     catch
                     {
@@ -82,16 +86,16 @@ namespace AttachedPropertyTests
                     }
                 }
 
-                // If this failed, try again using the Parent property (sometimes this is not covered by the VisualTreeHelper class :-P.
-                if (depObjParent == null && depObj is FrameworkElement)
-                    depObjParent = ((FrameworkElement)depObj).Parent;
+                //// If this failed, try again using the Parent property (sometimes this is not covered by the VisualTreeHelper class :-P.
+                //if (parent == null && dependencyObject is FrameworkElement element)
+                //    parent = element.Parent;
 
-                if (ret == null && depObjParent == null)
+                if (result == null && parent == null)
                 {
                     // Try to establish a notification on changes of the Parent property of dp.
-                    if (depObj is FrameworkElement frameworkElement && !parentNotifiers.ContainsKey(target))
+                    if (dependencyObject is FrameworkElement frameworkElement && !parentNotifiers.ContainsKey(target))
                     {
-                        var pcn = new ParentChangedNotifier(frameworkElement, () =>
+                        var changedNotifier = new ParentChangedNotifier(frameworkElement, () =>
                             {
                                 var localTarget = (DependencyObject)weakTarget.Target;
                                 if (!weakTarget.IsAlive) return;
@@ -103,16 +107,114 @@ namespace AttachedPropertyTests
                                     parentNotifiers.Remove(localTarget);
                             });
 
-                        parentNotifiers.Add(target, pcn);
+                        parentNotifiers.Add(target, changedNotifier);
                     }
                     break;
                 }
 
                 // Assign the parent to the current DependencyObject and start the next iteration.
-                depObj = depObjParent;
+                dependencyObject = parent;
+            }
+            return result;
+        }
+
+
+        public static T GetValueOrRegisterParentNotifier<T>(
+           this DependencyObject target,
+           Func<DependencyObject, T> getFunction,
+           Action<DependencyObject> parentChangedAction,
+           ParentNotifiers parentNotifiers, out DependencyObject dependencyObject)
+        {
+            var result = default(T);
+            dependencyObject = target;
+            if (target == null) return result;
+            if (getFunction == null) throw new ArgumentNullException(nameof(getFunction));
+            if (parentChangedAction == null) throw new ArgumentNullException(nameof(parentChangedAction));
+            if (parentNotifiers == null) throw new ArgumentNullException(nameof(parentNotifiers));
+
+            dependencyObject = target;
+            var weakTarget = new WeakReference(target);
+
+            while (result == null)
+            {
+                // Try to get the value using the provided GetFunction.
+                result = getFunction(dependencyObject);
+
+                if (result != null && parentNotifiers.ContainsKey(target))
+                    parentNotifiers.Remove(target);
+
+                // Try to get the parent using the visual tree helper. This may fail on some occations.
+                if (dependencyObject is System.Windows.Controls.ToolTip)
+                    break;
+
+                if (!(dependencyObject is Visual) && !(dependencyObject is Visual3D) && !(dependencyObject is FrameworkContentElement))
+                    break;
+
+                if (dependencyObject is Window)
+                    break;
+
+                DependencyObject parent;
+
+                if (dependencyObject is FrameworkContentElement element)
+                    parent = element.Parent;
+                else
+                {
+                    try
+                    {
+                        parent = dependencyObject.GetParent(false);
+                    }
+                    catch
+                    {
+                        parent = null;
+                    }
+                }
+
+                if (parent == null)
+                {
+                    try
+                    {
+                        parent = dependencyObject.GetParent(true);
+                    }
+                    catch
+                    {
+                        break;
+                    }
+                }
+
+                //// If this failed, try again using the Parent property (sometimes this is not covered by the VisualTreeHelper class :-P.
+                //if (parent == null && dependencyObject is FrameworkElement element)
+                //    parent = element.Parent;
+
+                if (result == null && parent == null)
+                {
+                    // Try to establish a notification on changes of the Parent property of dp.
+                    if (dependencyObject is FrameworkElement frameworkElement && !parentNotifiers.ContainsKey(target))
+                    {
+                        var changedNotifier = new ParentChangedNotifier(frameworkElement, () =>
+                        {
+                            var localTarget = (DependencyObject)weakTarget.Target;
+                            if (!weakTarget.IsAlive) return;
+
+                            // Call the action...
+                            parentChangedAction(localTarget);
+                            // ...and remove the notifier - it will probably not be used again.
+                            if (parentNotifiers.ContainsKey(localTarget))
+                                parentNotifiers.Remove(localTarget);
+                        });
+
+                        parentNotifiers.Add(target, changedNotifier);
+                    }
+                    break;
+                }
+
+                // Assign the parent to the current DependencyObject and start the next iteration.
+                if (result == null)
+                {
+                    dependencyObject = parent;
+                }
             }
 
-            return ret;
+            return result;
         }
 
         /// <summary>
@@ -182,6 +284,22 @@ namespace AttachedPropertyTests
             return target.GetValueOrRegisterParentNotifier(depObj => depObj.GetValueSync<T>(property), parentChangedAction, parentNotifiers);
         }
 
+        public static T GetValueOrRegisterParentNotifierX<T>(
+            this DependencyObject target,
+            DependencyProperty property,
+            Action<DependencyObject> parentChangedAction,
+            Action<T> valueChangedAction,
+
+            ParentNotifiers parentNotifiers)
+        {
+            var value = target.GetValueOrRegisterParentNotifier(depObj => depObj.GetValueSync<T>(property), parentChangedAction, parentNotifiers, out var parent);
+            var desc = DependencyPropertyDescriptor.FromProperty(property, typeof(AttachedObject<T>));
+            var v =  desc.GetValue(parent);
+            desc.AddValueChanged(parent, (sender, args) => valueChangedAction(parent.GetValueSync<T>(property)));
+
+            return value;
+        }
+        
         /// <summary>
         /// Gets the parent in the visual or logical tree.
         /// </summary>
@@ -196,6 +314,12 @@ namespace AttachedPropertyTests
             return (DependencyObject)depObj.Dispatcher.Invoke(new Func<DependencyObject>(() => GetParentInternal(depObj, isVisualTree)));
         }
 
+        /// <summary>
+        /// Gets the parent internal.
+        /// </summary>
+        /// <param name="depObj">The dep object.</param>
+        /// <param name="isVisualTree">if set to <c>true</c> [is visual tree].</param>
+        /// <returns></returns>
         private static DependencyObject GetParentInternal(DependencyObject depObj, bool isVisualTree)
         {
             if (isVisualTree)

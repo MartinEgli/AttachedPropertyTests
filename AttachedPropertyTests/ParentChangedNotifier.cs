@@ -119,6 +119,9 @@ namespace AttachedPropertyTests
                 element.Dispatcher.Invoke(new Action(this.SetBinding));
         }
 
+        /// <summary>
+        /// Sets the binding.
+        /// </summary>
         private void SetBinding()
         {
             var binding = new Binding("Parent")
