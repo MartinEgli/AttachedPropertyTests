@@ -16,7 +16,10 @@ namespace AttachedPropertyTests
     /// </summary>
     public class ParentNotifiers
     {
-        private readonly Dictionary<WeakReference<DependencyObject>, WeakReference<ParentChangedNotifier>> _inner =
+        /// <summary>
+        /// The inner
+        /// </summary>
+        private readonly Dictionary<WeakReference<DependencyObject>, WeakReference<ParentChangedNotifier>> inner =
             new Dictionary<WeakReference<DependencyObject>, WeakReference<ParentChangedNotifier>>();
 
         /// <summary>
@@ -24,10 +27,7 @@ namespace AttachedPropertyTests
         /// </summary>
         /// <param name="target">The target object.</param>
         /// <returns>True, if the key exists.</returns>
-        public bool ContainsKey(DependencyObject target)
-        {
-            return this._inner.Keys.Any(x => x.TryGetTarget(out var t) && ReferenceEquals(t, target));
-        }
+        public bool ContainsKey(DependencyObject target) => this.inner.Keys.Any(x => x.TryGetTarget(out var t) && ReferenceEquals(t, target));
 
         /// <summary>
         ///     Removes the entry.
@@ -35,22 +35,25 @@ namespace AttachedPropertyTests
         /// <param name="target">The target object.</param>
         public void Remove(DependencyObject target)
         {
-            var singleOrDefault = this._inner.Keys.SingleOrDefault(
+            var singleOrDefault = this.inner.Keys.SingleOrDefault(
                 x =>
                     {
                         x.TryGetTarget(out var t);
                         return ReferenceEquals(t, target);
                     });
 
-            if (singleOrDefault != null)
+            if (singleOrDefault == null)
             {
-                if (this._inner[singleOrDefault].TryGetTarget(out var t))
+                return;
+            }
+            else
+            {
+                if (this.inner[singleOrDefault].TryGetTarget(out var t))
                 {
                     t.Dispose();
                 }
-
-                this._inner.Remove(singleOrDefault);
             }
+            this.inner.Remove(singleOrDefault);
         }
 
         /// <summary>
@@ -58,11 +61,9 @@ namespace AttachedPropertyTests
         /// </summary>
         /// <param name="target">The target key object.</param>
         /// <param name="parentChangedNotifier">The notifier.</param>
-        public void Add(DependencyObject target, ParentChangedNotifier parentChangedNotifier)
-        {
-            this._inner.Add(
+        public void Add(DependencyObject target, ParentChangedNotifier parentChangedNotifier) =>
+            this.inner.Add(
                 new WeakReference<DependencyObject>(target),
                 new WeakReference<ParentChangedNotifier>(parentChangedNotifier));
-        }
     }
 }

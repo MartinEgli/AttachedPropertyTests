@@ -1,14 +1,16 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="AttachedObject.cs" company="Anori Soft">
+// <copyright file="AttachedBinding.cs" company="Anori Soft">
 // Copyright (c) Anori Soft. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
 
 namespace AttachedPropertyTests
 {
+    using System;
     using System.Windows;
+    using System.Windows.Data;
 
-    public class AttachedObject<T> : DependencyObject
+    public class AttachedBinding<T> : DependencyObject
 
     {
         /// <summary>
@@ -17,7 +19,7 @@ namespace AttachedPropertyTests
         public static readonly DependencyProperty SetterProperty = DependencyProperty.RegisterAttached(
             "Setter",
             typeof(T),
-            typeof(AttachedObject<T>),
+            typeof(AttachedBinding<T>),
             new PropertyMetadata(null, SetterChanged));
 
         /// <summary>
@@ -46,30 +48,31 @@ namespace AttachedPropertyTests
         /// </summary>
         /// <param name="obj">The dependency object to get the default assembly from.</param>
         /// <returns>The default assembly.</returns>
-        public static T GetSetter(DependencyObject obj) => obj.GetValueSync<T>(SetterProperty);
+        public static Binding GetSetter(DependencyObject obj) => obj.GetValueSync<Binding>(SetterProperty);
 
         /// <summary>
         ///     Setter of <see cref="DependencyProperty" /> default assembly.
         /// </summary>
         /// <param name="obj">The dependency object to set the default assembly to.</param>
         /// <param name="value">The assembly.</param>
-        public static void SetSetter(DependencyObject obj, T value) => obj.SetValueSync(SetterProperty, value);
+        public static void SetSetter(DependencyObject obj, Binding value) => obj.SetValueSync(SetterProperty, value);
 
         /// <summary>
         ///     Get the assembly from the context, if possible.
         /// </summary>
         /// <param name="target">The target object.</param>
         /// <returns>The assembly name, if available.</returns>
-        public T GetValue(DependencyObject target)
+        public T GetValueOrRegisterParentChanged(DependencyObject target, Action<T> parentChanged)
         {
             if (target == null)
             {
                 return this.FallbackValue;
             }
 
-            var value = target.GetValueOrRegisterParentNotifier<T>(
+            var value = target.GetValueOrRegisterParentNotifierX(
                 SetterProperty,
                 this.ParentChangedAction,
+                parentChanged,
                 this.parentNotifiers);
             if (value == null)
             {
