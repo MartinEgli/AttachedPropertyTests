@@ -1,16 +1,16 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="AttachedForkString.cs" company="Anori Soft">
+// <copyright file="AttachedForkBoolean.cs" company="Anori Soft">
 // Copyright (c) Anori Soft. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
 
 namespace AttachedPropertyTests
 {
-    public sealed class AttachedForkString : AttachedForkString<AttachedForkString>
+    public abstract class AttachedForkBoolean<TOwner> : AttachedFork<bool, TOwner>
     {
     }
 
-    public abstract class AttachedForkString<TOwner> : AttachedFork<string, TOwner>
+    public sealed class AttachedForkBoolean : AttachedForkBoolean<AttachedForkBoolean>
     {
     }
 }

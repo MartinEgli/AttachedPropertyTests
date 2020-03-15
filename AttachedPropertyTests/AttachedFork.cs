@@ -9,7 +9,13 @@ namespace AttachedPropertyTests
     using System;
     using System.Windows;
 
-    public class AttachedFork<T, TOwner> : DependencyObject
+    /// <summary>
+    /// Attached Fork
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="TOwner">The type of the owner.</typeparam>
+    /// <seealso cref="System.Windows.DependencyObject" />
+    public abstract class AttachedFork<T, TOwner> : DependencyObject
 
     {
         /// <summary>
@@ -82,7 +88,7 @@ namespace AttachedPropertyTests
         /// <returns></returns>
         public static T GetValueOrRegisterParentChanged(DependencyObject target, Action<T> sourceChanged)
         {
-            var value = target.GetValueOrRegisterParentNotifierX<T, TOwner>(
+            var value = target.GetValueOrRegisterParentNotifier(
                 SetterProperty,
                 ParentChangedAction,
                 sourceChanged,

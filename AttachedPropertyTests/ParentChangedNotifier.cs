@@ -12,6 +12,8 @@ namespace AttachedPropertyTests
     using System.Windows;
     using System.Windows.Data;
 
+    using JetBrains.Annotations;
+
     /// <summary>
     ///     A class that helps listening to changes on the Parent property of FrameworkElement objects.
     /// </summary>
@@ -35,45 +37,52 @@ namespace AttachedPropertyTests
             new Dictionary<WeakReference, List<Action>>();
 
         /// <summary>
-        ///     The element this notifier is bound to. Needed to release the binding and Action entry.
+        ///     The weakElement this notifier is bound to. Needed to release the binding and Action entry.
         /// </summary>
-        private WeakReference element;
+        private WeakReference weakElement;
 
         /// <summary>
         ///     Constructor.
         /// </summary>
-        /// <param name="element">The element whose Parent property should be listened to.</param>
+        /// <param name="element">The weakElement whose Parent property should be listened to.</param>
         /// <param name="onParentChanged">The action that will be performed upon change events.</param>
-        public ParentChangedNotifier(FrameworkElement element, Action onParentChanged)
+        public ParentChangedNotifier([NotNull] FrameworkElement element, [NotNull] Action onParentChanged)
         {
-            this.element = new WeakReference(element);
-
-            if (onParentChanged != null)
+            if (element == null)
             {
-                if (!OnParentChangedList.ContainsKey(this.element))
+                throw new ArgumentNullException(nameof(element));
+            }
+
+            if (onParentChanged == null)
+            {
+                throw new ArgumentNullException(nameof(onParentChanged));
+            }
+
+            this.weakElement = new WeakReference(element);
+
+            if (!OnParentChangedList.ContainsKey(this.weakElement))
+            {
+                var foundOne = false;
+
+                foreach (var key in OnParentChangedList.Keys)
                 {
-                    var foundOne = false;
-
-                    foreach (var key in OnParentChangedList.Keys)
+                    if (!ReferenceEquals(key.Target, element))
                     {
-                        if (!ReferenceEquals(key.Target, element))
-                        {
-                            continue;
-                        }
-
-                        this.element = key;
-                        foundOne = true;
-                        break;
+                        continue;
                     }
 
-                    if (!foundOne)
-                    {
-                        OnParentChangedList.Add(this.element, new List<Action>());
-                    }
+                    this.weakElement = key;
+                    foundOne = true;
+                    break;
                 }
 
-                OnParentChangedList[this.element].Add(onParentChanged);
+                if (!foundOne)
+                {
+                    OnParentChangedList.Add(this.weakElement, new List<Action>());
+                }
             }
+
+            OnParentChangedList[this.weakElement].Add(onParentChanged);
 
             if (element.CheckAccess())
             {
@@ -92,7 +101,8 @@ namespace AttachedPropertyTests
         /// </summary>
         /// <param name="obj">The sender.</param>
         /// <param name="args">The argument.</param>
-        private static void ParentChanged(DependencyObject obj, DependencyPropertyChangedEventArgs args)
+        private static void ParentChanged([NotNull] DependencyObject obj,
+                                          DependencyPropertyChangedEventArgs args)
         {
             if (!(obj is FrameworkElement notifier))
             {
@@ -126,7 +136,7 @@ namespace AttachedPropertyTests
             var binding = new Binding("Parent") { RelativeSource = new RelativeSource() };
             binding.RelativeSource.Mode = RelativeSourceMode.FindAncestor;
             binding.RelativeSource.AncestorType = typeof(FrameworkElement);
-            BindingOperations.SetBinding((FrameworkElement)this.element.Target, ParentProperty, binding);
+            BindingOperations.SetBinding((FrameworkElement)this.weakElement.Target, ParentProperty, binding);
         }
 
         /// <summary>
@@ -134,10 +144,10 @@ namespace AttachedPropertyTests
         /// </summary>
         public void Dispose()
         {
-            var weakElement = this.element;
-            var weakElementReference = weakElement.Target;
+            var element = this.weakElement;
+            var weakElementReference = element.Target;
 
-            if (weakElementReference == null || !weakElement.IsAlive)
+            if (weakElementReference == null || !element.IsAlive)
             {
                 return;
             }
@@ -146,16 +156,16 @@ namespace AttachedPropertyTests
             {
                 ((FrameworkElement)weakElementReference).ClearValue(ParentProperty);
 
-                if (OnParentChangedList.ContainsKey(weakElement))
+                if (OnParentChangedList.ContainsKey(element))
                 {
-                    var list = OnParentChangedList[weakElement];
+                    var list = OnParentChangedList[element];
                     list.Clear();
-                    OnParentChangedList.Remove(weakElement);
+                    OnParentChangedList.Remove(element);
                 }
             }
             finally
             {
-                this.element = null;
+                this.weakElement = null;
             }
         }
 
@@ -166,8 +176,13 @@ namespace AttachedPropertyTests
         /// </summary>
         /// <param name="element">The target FrameworkElement object.</param>
         /// <returns>The target's parent FrameworkElement object.</returns>
-        public static FrameworkElement GetParent(FrameworkElement element)
+        public static FrameworkElement GetParent([NotNull] FrameworkElement element)
         {
+            if (element == null)
+            {
+                throw new ArgumentNullException(nameof(element));
+            }
+
             return element.GetValueSync<FrameworkElement>(ParentProperty);
         }
 
@@ -176,8 +191,13 @@ namespace AttachedPropertyTests
         /// </summary>
         /// <param name="element">The target FrameworkElement object.</param>
         /// <param name="value">The target's parent FrameworkElement object.</param>
-        public static void SetParent(FrameworkElement element, FrameworkElement value)
+        public static void SetParent([NotNull] FrameworkElement element, FrameworkElement value)
         {
+            if (element == null)
+            {
+                throw new ArgumentNullException(nameof(element));
+            }
+
             element.SetValueSync(ParentProperty, value);
         }
 

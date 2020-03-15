@@ -13,6 +13,7 @@ namespace AttachedPropertyTests
     /// <summary>
     /// </summary>
     /// <typeparam name="T"></typeparam>
+    /// <typeparam name="TOwner"></typeparam>
     /// <seealso cref="System.Windows.Markup.MarkupExtension" />
     public abstract class AttachedGetterExtension<T, TOwner> : UpdatableMarkupExtension
     {

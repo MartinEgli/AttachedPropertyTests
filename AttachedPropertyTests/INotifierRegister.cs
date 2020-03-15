@@ -1,16 +1,17 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="AttachedForkString.cs" company="Anori Soft">
+// <copyright file="INotifierRegister.cs" company="Anori Soft">
 // Copyright (c) Anori Soft. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
 
 namespace AttachedPropertyTests
 {
-    public sealed class AttachedForkString : AttachedForkString<AttachedForkString>
-    {
-    }
+    using System.Windows;
 
-    public abstract class AttachedForkString<TOwner> : AttachedFork<string, TOwner>
+    public interface INotifierRegister
     {
+        void Remove(DependencyObject target);
+
+        void Add(DependencyObject target, DependencyObject dependencyObject);
     }
 }

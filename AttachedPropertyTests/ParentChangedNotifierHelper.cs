@@ -11,6 +11,8 @@ namespace AttachedPropertyTests
     using System.Windows.Media;
     using System.Windows.Media.Media3D;
 
+    using JetBrains.Annotations;
+
     public static class ParentChangedNotifierHelper
     {
         /// <summary>
@@ -97,7 +99,7 @@ namespace AttachedPropertyTests
         ///     or
         ///     parentChangedAction
         ///     or
-        ///     parentNotifiers
+        ///     parentNotifiersRegister
         /// </exception>
         public static T GetValueOrRegisterParentNotifier<T>(
             this DependencyObject target,
@@ -132,6 +134,49 @@ namespace AttachedPropertyTests
         }
 
         /// <summary>
+        ///     Gets the value or register parent notifier.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="target">The target.</param>
+        /// <param name="property">The property.</param>
+        /// <param name="parentChangedAction">The parent changed action.</param>
+        /// <param name="parentNotifiers">The parent notifiers.</param>
+        /// <param name="sourceObject">The source object.</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">
+        ///     parentChangedAction
+        ///     or
+        ///     parentNotifiers
+        /// </exception>
+        public static T GetValueOrRegisterParentNotifier<T>(
+            this DependencyObject target,
+            DependencyProperty property,
+            Action<DependencyObject> parentChangedAction,
+            ParentNotifiers parentNotifiers,
+            out DependencyObject sourceObject)
+        {
+            var result = default(T);
+            sourceObject = target;
+            if (target == null)
+            {
+                return result;
+            }
+
+            if (parentChangedAction == null)
+            {
+                throw new ArgumentNullException(nameof(parentChangedAction));
+            }
+
+            if (parentNotifiers == null)
+            {
+                throw new ArgumentNullException(nameof(parentNotifiers));
+            }
+
+            return WalkTreeUp<T>(target, property, parentChangedAction, parentNotifiers, out sourceObject);
+            //            return Loop(target, property, parentChangedAction, parentNotifiersRegister, out sourceObject);
+        }
+
+        /// <summary>
         ///     Loops the specified target.
         /// </summary>
         /// <typeparam name="T"></typeparam>
@@ -149,7 +194,6 @@ namespace AttachedPropertyTests
             out DependencyObject dependencyObject)
         {
             T result;
-            var weakTarget = new WeakReference(target);
             dependencyObject = target;
 
             do
@@ -178,7 +222,7 @@ namespace AttachedPropertyTests
 
                 if (parent == null)
                 {
-                    target.RegisterParentNotifier(parentChangedAction, parentNotifiers, dependencyObject, weakTarget);
+                    parentNotifiers.RegisterParentNotifier(target, dependencyObject, parentChangedAction);
                     break;
                 }
 
@@ -189,25 +233,138 @@ namespace AttachedPropertyTests
             return result;
         }
 
+        private static T WalkTreeUp<T>(
+            this DependencyObject target,
+            DependencyProperty property,
+            Action<DependencyObject> parentChangedAction,
+            ParentNotifiers parentNotifiers,
+            out DependencyObject dependencyObject)
+        {
+            dependencyObject = target;
+
+            do
+            {
+                var hasResult = dependencyObject.HasDependencyProperty(property);
+
+                if (hasResult)
+                {
+                    parentNotifiers.UnregisterParentNotifier(target);
+                }
+
+                if (dependencyObject.CheckType())
+                {
+                    break;
+                }
+
+                if (dependencyObject.TryGetParent(out var parent))
+                {
+                    break;
+                }
+
+                if (hasResult)
+                {
+                    break;
+                }
+
+                if (parent == null)
+                {
+                    parentNotifiers.RegisterParentNotifier(target, dependencyObject, parentChangedAction);
+                    break;
+                }
+
+                dependencyObject = parent;
+            }
+            while (true);
+
+            return dependencyObject.GetValueSync<T>(property);
+        }
+
+        /// <summary>
+        ///     Loops the tree up.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="target">The target.</param>
+        /// <param name="property">The property.</param>
+        /// <param name="parentNotifiersRegister">The parent notifiers register.</param>
+        /// <param name="dependencyObject">The dependency object.</param>
+        /// <returns></returns>
+        private static T LoopTreeUp<T>(
+            this DependencyObject target,
+            DependencyProperty property,
+            INotifierRegister parentNotifiersRegister,
+            out DependencyObject dependencyObject)
+        {
+            dependencyObject = target;
+
+            do
+            {
+                var hasResult = dependencyObject.HasDependencyProperty(property);
+
+                if (hasResult)
+                {
+                    parentNotifiersRegister.Remove(target);
+                }
+
+                if (dependencyObject.CheckType())
+                {
+                    break;
+                }
+
+                if (dependencyObject.TryGetParent(out var parent))
+                {
+                    break;
+                }
+
+                if (hasResult)
+                {
+                    break;
+                }
+
+                if (parent == null)
+                {
+                    parentNotifiersRegister.Add(target, dependencyObject);
+                    break;
+                }
+
+                dependencyObject = parent;
+            }
+            while (true);
+
+            return dependencyObject.GetValueSync<T>(property);
+        }
+
+        /// <summary>
+        ///     Unregisters the parent notifier.
+        /// </summary>
+        /// <param name="parentNotifiers">The parent notifiers.</param>
+        /// <param name="target">The target.</param>
+        private static void UnregisterParentNotifier(this ParentNotifiers parentNotifiers, DependencyObject target)
+        {
+            if (parentNotifiers.ContainsKey(target))
+            {
+                parentNotifiers.Remove(target);
+            }
+        }
+
         /// <summary>
         ///     Registers the sourceObject notifier.
         /// </summary>
-        /// <param name="target">The target.</param>
-        /// <param name="parentChangedAction">The sourceObject changed action.</param>
         /// <param name="parentNotifiers">The sourceObject notifiers.</param>
+        /// <param name="target">The target.</param>
         /// <param name="dependencyObject">The dependency object.</param>
-        /// <param name="weakTarget">The weak target.</param>
+        /// <param name="parentChangedAction">The sourceObject changed action.</param>
         private static void RegisterParentNotifier(
-            this DependencyObject target,
-            Action<DependencyObject> parentChangedAction,
-            ParentNotifiers parentNotifiers,
+            this ParentNotifiers parentNotifiers,
+            DependencyObject target,
             DependencyObject dependencyObject,
-            WeakReference weakTarget)
+            Action<DependencyObject> parentChangedAction)
         {
             if (!(dependencyObject is FrameworkElement frameworkElement) || parentNotifiers.ContainsKey(target))
             {
                 return;
             }
+
+            var weakTarget = new WeakReference(target);
 
             void OnParentChangedHandler()
             {
@@ -218,11 +375,12 @@ namespace AttachedPropertyTests
                 }
 
                 parentChangedAction(localTarget);
+                parentNotifiers.UnregisterParentNotifier(localTarget);
 
-                if (parentNotifiers.ContainsKey(localTarget))
-                {
-                    parentNotifiers.Remove(localTarget);
-                }
+                //    if (parentNotifiers.ContainsKey(localTarget))
+                //    {
+                //        parentNotifiers.Remove(localTarget);
+                //    }
             }
 
             var changedNotifier = new ParentChangedNotifier(frameworkElement, OnParentChangedHandler);
@@ -236,7 +394,9 @@ namespace AttachedPropertyTests
         /// <param name="dependencyObject">The dependency object.</param>
         /// <param name="parent">The sourceObject.</param>
         /// <returns></returns>
-        private static bool TryGetParent(this DependencyObject dependencyObject, out DependencyObject parent)
+        private static bool TryGetParent(
+            [NotNull] this DependencyObject dependencyObject,
+            [CanBeNull] out DependencyObject parent)
         {
             if (dependencyObject is FrameworkContentElement element)
             {
@@ -351,11 +511,16 @@ namespace AttachedPropertyTests
             Action<DependencyObject> parentChangedAction,
             ParentNotifiers parentNotifiers)
         {
-            return target.GetValueOrRegisterParentNotifier(
-                (in DependencyObject dependencyObject, out T result) =>
-                    dependencyObject.TryGetValueSync(property, out result),
+            return target.GetValueOrRegisterParentNotifier<T>(
+                property,
                 parentChangedAction,
-                parentNotifiers);
+                parentNotifiers,
+                out target);
+            //return target.GetValueOrRegisterParentNotifier(
+            //    (in DependencyObject dependencyObject, out T result) =>
+            //        dependencyObject.TryGetValueSync(property, out result),
+            //    parentChangedAction,
+            //    parentNotifiersRegister);
         }
 
         /// <summary>
@@ -368,7 +533,7 @@ namespace AttachedPropertyTests
         /// <param name="valueChangedAction">The value changed action.</param>
         /// <param name="parentNotifiers">The sourceObject notifiers.</param>
         /// <returns></returns>
-        public static T GetValueOrRegisterParentNotifierX<T, TOwner>(
+        public static T GetValueOrRegisterParentNotifier<T>(
             this DependencyObject target,
             DependencyProperty property,
             Action<DependencyObject> parentChangedAction,
@@ -392,8 +557,14 @@ namespace AttachedPropertyTests
         /// <param name="depObj">The dependency object.</param>
         /// <param name="isVisualTree">True for visual tree, false for logical tree.</param>
         /// <returns>The sourceObject, if available.</returns>
-        public static DependencyObject GetParent(this DependencyObject depObj, bool isVisualTree)
+        [CanBeNull]
+        public static DependencyObject GetParent([NotNull] this DependencyObject depObj, bool isVisualTree)
         {
+            if (depObj == null)
+            {
+                throw new ArgumentNullException(nameof(depObj));
+            }
+
             if (depObj.CheckAccess())
             {
                 return GetParentInternal(depObj, isVisualTree);

@@ -36,5 +36,11 @@ namespace AttachedPropertyTests
             var dialog = new SwitchContentWindow();
             dialog.ShowDialog();
         }
+
+        private void OneToMultiButton_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OneToMultibleWindow();
+            dialog.ShowDialog();
+        }
     }
 }

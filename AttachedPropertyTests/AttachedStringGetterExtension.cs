@@ -9,12 +9,4 @@ namespace AttachedPropertyTests
     public class AttachedStringGetterExtension : AttachedGetterExtension<string, AttachedForkString>
     {
     }
-
-    public class AttachedBoolGetterExtension : AttachedGetterExtension<bool, AttachedForkBool>
-    {
-    }
-
-    public class AttachedBooleanGetterExtension : AttachedGetterExtension<bool, AttachedForkBoolean>
-    {
-    }
 }

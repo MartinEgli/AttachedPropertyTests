@@ -12,27 +12,37 @@
     <StackPanel>
         <Button Click="Button1_Click">Set Content 1</Button>
         <Button Click="Button2_Click">Set Content 2</Button>
-        <ContentControl
-            x:Name="Control1"
-            local:AttachedForkBool.Setter="False"
-            local:AttachedForkBoolean.Setter="False"
-            local:AttachedForkString.Setter="abc" />
-        <ContentControl
-            x:Name="Control2"
-            local:AttachedForkBool.Setter="True"
-            local:AttachedForkBoolean.Setter="False"
-            local:AttachedForkString.Setter="xyz" />
+        <Border BorderBrush="Blue" BorderThickness="2">
+            <StackPanel>
+                <Label>Content 1</Label>
+                <ContentControl
+                    x:Name="Control1"
+                    local:AttachedForkBool.Setter="False"
+                    local:AttachedForkBoolean.Setter="True"
+                    local:AttachedForkString.Setter="abc" />
+            </StackPanel>
+        </Border>
+        <Border BorderBrush="Red" BorderThickness="2">
+            <StackPanel>
+                <Label>Content 2</Label>
+                <ContentControl
+                    x:Name="Control2"
+                    local:AttachedForkBool.Setter="True"
+                    local:AttachedForkBoolean.Setter="False"
+                    local:AttachedForkString.Setter="xyz" />
+            </StackPanel>
+        </Border>
 
-        <!--<ContentControl
-            x:Name="Control1"
-            local:AttachedForkBool.Setter="False"
-            local:AttachedForkString.Setter="abc" />
-        <ContentControl
-            x:Name="Control2"
-            local:AttachedForkBool.Setter="True"
-            local:AttachedForkString.Setter="xyz" />-->
-        <ContentControl local:AttachedForkString.Setter="123">
-            <local:AttachedUserControl />
-        </ContentControl>
+        <Border BorderBrush="Green" BorderThickness="2">
+            <StackPanel>
+                <Label>Content</Label>
+                <ContentControl
+                    local:AttachedForkBool.Setter="True"
+                    local:AttachedForkBoolean.Setter="True"
+                    local:AttachedForkString.Setter="123">
+                    <local:AttachedUserControl />
+                </ContentControl>
+            </StackPanel>
+        </Border>
     </StackPanel>
 </Window>
