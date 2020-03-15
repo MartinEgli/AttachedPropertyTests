@@ -4,8 +4,6 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using System.ComponentModel;
-
 namespace AttachedPropertyTests
 {
     using System;
@@ -16,12 +14,34 @@ namespace AttachedPropertyTests
     public static class ParentChangedNotifierHelper
     {
         /// <summary>
+        ///     TryGetFunc
+        /// </summary>
+        /// <typeparam name="TResult">The type of the result.</typeparam>
+        /// <param name="dependencyObject">The dependency object.</param>
+        /// <param name="result">The result.</param>
+        /// <returns></returns>
+        public delegate bool TryGetFunc<TResult>(in DependencyObject dependencyObject, out TResult result);
+
+        /// <summary>
+        /// </summary>
+        /// <typeparam name="T1">The type of the 1.</typeparam>
+        /// <typeparam name="TResult">The type of the result.</typeparam>
+        /// <param name="dependencyObject">The dependency object.</param>
+        /// <param name="parameter1">The parameter1.</param>
+        /// <param name="result">The result.</param>
+        /// <returns></returns>
+        public delegate bool TryGetFunc<T1, TResult>(
+            in DependencyObject dependencyObject,
+            in T1 parameter1,
+            out TResult result);
+
+        /// <summary>
         ///     Tries to get a value that is stored somewhere in the visual tree above this <see cref="DependencyObject" />.
         ///     <para>If this is not available, it will register a <see cref="ParentChangedNotifier" /> on the last element.</para>
         /// </summary>
         /// <typeparam name="T">The return type.</typeparam>
         /// <param name="target">The <see cref="DependencyObject" />.</param>
-        /// <param name="getFunction">The function that gets the value from a <see cref="DependencyObject" />.</param>
+        /// <param name="getFunc">The function that gets the value from a <see cref="DependencyObject" />.</param>
         /// <param name="parentChangedAction">The notification action on the change event of the Parent property.</param>
         /// <param name="parentNotifiers">A dictionary of already registered notifiers.</param>
         /// <returns>
@@ -29,11 +49,11 @@ namespace AttachedPropertyTests
         /// </returns>
         public static T GetValueOrRegisterParentNotifier<T>(
             this DependencyObject target,
-            Func<DependencyObject, T> getFunction,
+            TryGetFunc<T> getFunc,
             Action<DependencyObject> parentChangedAction,
             ParentNotifiers parentNotifiers)
         {
-            return GetValueOrRegisterParentNotifier(target, getFunction, parentChangedAction, parentNotifiers, out _);
+            return GetValueOrRegisterParentNotifier(target, getFunc, parentChangedAction, parentNotifiers, out _);
         }
 
         /// <summary>
@@ -41,7 +61,7 @@ namespace AttachedPropertyTests
         /// </summary>
         /// <param name="dependencyObject">The dependency object.</param>
         /// <returns></returns>
-        private static bool CheckType(DependencyObject dependencyObject)
+        private static bool CheckType(this DependencyObject dependencyObject)
         {
             if (dependencyObject is System.Windows.Controls.ToolTip)
             {
@@ -63,17 +83,17 @@ namespace AttachedPropertyTests
         }
 
         /// <summary>
-        ///     Gets the value or register parent notifier.
+        ///     Gets the value or register sourceObject notifier.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="target">The target.</param>
-        /// <param name="getFunction">The get function.</param>
-        /// <param name="parentChangedAction">The parent changed action.</param>
-        /// <param name="parentNotifiers">The parent notifiers.</param>
-        /// <param name="dependencyObject">The dependency object.</param>
+        /// <param name="tryGetPropertyValue">The get function.</param>
+        /// <param name="parentChangedAction">The sourceObject changed action.</param>
+        /// <param name="parentNotifiers">The sourceObject notifiers.</param>
+        /// <param name="sourceObject">The dependency object.</param>
         /// <returns></returns>
         /// <exception cref="ArgumentNullException">
-        ///     getFunction
+        ///     tryGetPropertyValue
         ///     or
         ///     parentChangedAction
         ///     or
@@ -81,21 +101,21 @@ namespace AttachedPropertyTests
         /// </exception>
         public static T GetValueOrRegisterParentNotifier<T>(
             this DependencyObject target,
-            Func<DependencyObject, T> getFunction,
+            TryGetFunc<T> tryGetPropertyValue,
             Action<DependencyObject> parentChangedAction,
             ParentNotifiers parentNotifiers,
-            out DependencyObject dependencyObject)
+            out DependencyObject sourceObject)
         {
             var result = default(T);
-            dependencyObject = target;
+            sourceObject = target;
             if (target == null)
             {
                 return result;
             }
 
-            if (getFunction == null)
+            if (tryGetPropertyValue == null)
             {
-                throw new ArgumentNullException(nameof(getFunction));
+                throw new ArgumentNullException(nameof(tryGetPropertyValue));
             }
 
             if (parentChangedAction == null)
@@ -108,7 +128,7 @@ namespace AttachedPropertyTests
                 throw new ArgumentNullException(nameof(parentNotifiers));
             }
 
-            return Loop(target, getFunction, parentChangedAction, parentNotifiers, out dependencyObject);
+            return Loop(target, tryGetPropertyValue, parentChangedAction, parentNotifiers, out sourceObject);
         }
 
         /// <summary>
@@ -116,14 +136,14 @@ namespace AttachedPropertyTests
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="target">The target.</param>
-        /// <param name="getFunction">The get function.</param>
-        /// <param name="parentChangedAction">The parent changed action.</param>
-        /// <param name="parentNotifiers">The parent notifiers.</param>
+        /// <param name="tryGetPropertyValue">The get function.</param>
+        /// <param name="parentChangedAction">The sourceObject changed action.</param>
+        /// <param name="parentNotifiers">The sourceObject notifiers.</param>
         /// <param name="dependencyObject">The dependency object.</param>
         /// <returns></returns>
         private static T Loop<T>(
-            DependencyObject target,
-            Func<DependencyObject, T> getFunction,
+            this DependencyObject target,
+            TryGetFunc<T> tryGetPropertyValue,
             Action<DependencyObject> parentChangedAction,
             ParentNotifiers parentNotifiers,
             out DependencyObject dependencyObject)
@@ -134,31 +154,31 @@ namespace AttachedPropertyTests
 
             do
             {
-                result = getFunction(dependencyObject);
+                var hasResult = tryGetPropertyValue(dependencyObject, out result);
 
-                if (result != null && parentNotifiers.ContainsKey(target))
+                if (hasResult && result != null && parentNotifiers.ContainsKey(target))
                 {
                     parentNotifiers.Remove(target);
                 }
 
-                if (CheckType(dependencyObject))
+                if (dependencyObject.CheckType())
                 {
                     break;
                 }
 
-                if (TryGetParent(dependencyObject, out var parent))
+                if (dependencyObject.TryGetParent(out var parent))
                 {
                     break;
                 }
 
-                if (result != null)
+                if (hasResult)
                 {
                     break;
                 }
 
                 if (parent == null)
                 {
-                    RegisterParentNotifier(target, parentChangedAction, parentNotifiers, dependencyObject, weakTarget);
+                    target.RegisterParentNotifier(parentChangedAction, parentNotifiers, dependencyObject, weakTarget);
                     break;
                 }
 
@@ -170,51 +190,53 @@ namespace AttachedPropertyTests
         }
 
         /// <summary>
-        ///     Registers the parent notifier.
+        ///     Registers the sourceObject notifier.
         /// </summary>
         /// <param name="target">The target.</param>
-        /// <param name="parentChangedAction">The parent changed action.</param>
-        /// <param name="parentNotifiers">The parent notifiers.</param>
+        /// <param name="parentChangedAction">The sourceObject changed action.</param>
+        /// <param name="parentNotifiers">The sourceObject notifiers.</param>
         /// <param name="dependencyObject">The dependency object.</param>
         /// <param name="weakTarget">The weak target.</param>
         private static void RegisterParentNotifier(
-            DependencyObject target,
+            this DependencyObject target,
             Action<DependencyObject> parentChangedAction,
             ParentNotifiers parentNotifiers,
             DependencyObject dependencyObject,
             WeakReference weakTarget)
         {
-            if (dependencyObject is FrameworkElement frameworkElement && !parentNotifiers.ContainsKey(target))
+            if (!(dependencyObject is FrameworkElement frameworkElement) || parentNotifiers.ContainsKey(target))
             {
-                var changedNotifier = new ParentChangedNotifier(
-                    frameworkElement,
-                    () =>
-                        {
-                            var localTarget = (DependencyObject)weakTarget.Target;
-                            if (!weakTarget.IsAlive)
-                            {
-                                return;
-                            }
-
-                            parentChangedAction(localTarget);
-
-                            if (parentNotifiers.ContainsKey(localTarget))
-                            {
-                                parentNotifiers.Remove(localTarget);
-                            }
-                        });
-
-                parentNotifiers.Add(target, changedNotifier);
+                return;
             }
+
+            void OnParentChangedHandler()
+            {
+                var localTarget = (DependencyObject)weakTarget.Target;
+                if (!weakTarget.IsAlive)
+                {
+                    return;
+                }
+
+                parentChangedAction(localTarget);
+
+                if (parentNotifiers.ContainsKey(localTarget))
+                {
+                    parentNotifiers.Remove(localTarget);
+                }
+            }
+
+            var changedNotifier = new ParentChangedNotifier(frameworkElement, OnParentChangedHandler);
+
+            parentNotifiers.Add(target, changedNotifier);
         }
 
         /// <summary>
-        ///     Tries the get parent.
+        ///     Tries the get sourceObject.
         /// </summary>
         /// <param name="dependencyObject">The dependency object.</param>
-        /// <param name="parent">The parent.</param>
+        /// <param name="parent">The sourceObject.</param>
         /// <returns></returns>
-        private static bool TryGetParent(DependencyObject dependencyObject, out DependencyObject parent)
+        private static bool TryGetParent(this DependencyObject dependencyObject, out DependencyObject parent)
         {
             if (dependencyObject is FrameworkContentElement element)
             {
@@ -270,7 +292,7 @@ namespace AttachedPropertyTests
                 // Try to get the value using the provided GetFunction.
                 result = getFunction(depObj);
 
-                // Try to get the parent using the visual tree helper. This may fail on some occations.
+                // Try to get the sourceObject using the visual tree helper. This may fail on some occations.
                 if (!(depObj is Visual) && !(depObj is Visual3D) && !(depObj is FrameworkContentElement))
                 {
                     break;
@@ -295,9 +317,9 @@ namespace AttachedPropertyTests
                 }
 
                 // If this failed, try again using the Parent property (sometimes this is not covered by the VisualTreeHelper class :-P.
-                if (depObjParent == null && depObj is FrameworkElement)
+                if (depObjParent == null && depObj is FrameworkElement frameworkElement)
                 {
-                    depObjParent = ((FrameworkElement)depObj).Parent;
+                    depObjParent = frameworkElement.Parent;
                 }
 
                 if (result == null && depObjParent == null)
@@ -305,7 +327,7 @@ namespace AttachedPropertyTests
                     break;
                 }
 
-                // Assign the parent to the current DependencyObject and start the next iteration.
+                // Assign the sourceObject to the current DependencyObject and start the next iteration.
                 depObj = depObjParent;
             }
 
@@ -330,22 +352,23 @@ namespace AttachedPropertyTests
             ParentNotifiers parentNotifiers)
         {
             return target.GetValueOrRegisterParentNotifier(
-                depObj => depObj.GetValueSync<T>(property),
+                (in DependencyObject dependencyObject, out T result) =>
+                    dependencyObject.TryGetValueSync(property, out result),
                 parentChangedAction,
                 parentNotifiers);
         }
 
         /// <summary>
-        ///     Gets the value or register parent notifier x.
+        ///     Gets the value or register sourceObject notifier x.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="target">The target.</param>
         /// <param name="property">The property.</param>
-        /// <param name="parentChangedAction">The parent changed action.</param>
+        /// <param name="parentChangedAction">The sourceObject changed action.</param>
         /// <param name="valueChangedAction">The value changed action.</param>
-        /// <param name="parentNotifiers">The parent notifiers.</param>
+        /// <param name="parentNotifiers">The sourceObject notifiers.</param>
         /// <returns></returns>
-        public static T GetValueOrRegisterParentNotifierX<T>(
+        public static T GetValueOrRegisterParentNotifierX<T, TOwner>(
             this DependencyObject target,
             DependencyProperty property,
             Action<DependencyObject> parentChangedAction,
@@ -353,21 +376,22 @@ namespace AttachedPropertyTests
             ParentNotifiers parentNotifiers)
         {
             var value = target.GetValueOrRegisterParentNotifier(
-                depObj => depObj.GetValueSync<T>(property),
+                (in DependencyObject dependencyObject, out T result) =>
+                    dependencyObject.TryGetValueSync(property, out result),
                 parentChangedAction,
                 parentNotifiers,
-                out var parent);
-            var desc = DependencyPropertyDescriptor.FromProperty(property, typeof(AttachedObject<T>));
-            desc.AddValueChanged(parent, (sender, args) => valueChangedAction(parent.GetValueSync<T>(property)));
+                out var sourceObject);
+
+            sourceObject.AddValueChanged(property, valueChangedAction);
             return value;
         }
 
         /// <summary>
-        ///     Gets the parent in the visual or logical tree.
+        ///     Gets the sourceObject in the visual or logical tree.
         /// </summary>
         /// <param name="depObj">The dependency object.</param>
         /// <param name="isVisualTree">True for visual tree, false for logical tree.</param>
-        /// <returns>The parent, if available.</returns>
+        /// <returns>The sourceObject, if available.</returns>
         public static DependencyObject GetParent(this DependencyObject depObj, bool isVisualTree)
         {
             if (depObj.CheckAccess())
@@ -379,7 +403,7 @@ namespace AttachedPropertyTests
         }
 
         /// <summary>
-        ///     Gets the parent internal.
+        ///     Gets the sourceObject internal.
         /// </summary>
         /// <param name="depObj">The dep object.</param>
         /// <param name="isVisualTree">if set to <c>true</c> [is visual tree].</param>

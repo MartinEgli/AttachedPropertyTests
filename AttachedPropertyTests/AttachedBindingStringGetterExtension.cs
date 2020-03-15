@@ -6,7 +6,7 @@
 
 namespace AttachedPropertyTests
 {
-    public class AttachedBindingStringGetterExtension : AttachedBindingGetterExtension<string>
+    public class AttachedBindingStringGetterExtension : AttachedBindingGetterExtension<string, AttachedForkString>
     {
     }
 }

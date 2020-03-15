@@ -10,7 +10,7 @@ namespace AttachedPropertyTests
     using System.Windows;
     using System.Windows.Markup;
 
-    public abstract class AttachedBindingGetterExtension<T> : UpdatableMarkupExtension
+    public abstract class AttachedBindingGetterExtension<T, TOwner> : UpdatableMarkupExtension
     {
         /// <summary>
         ///     Provides the value internal.
@@ -23,8 +23,9 @@ namespace AttachedPropertyTests
 
             if (provideValueTarget.TargetObject is DependencyObject dependencyObject)
             {
-                var attachedBinding = new AttachedBinding<T>();
-                var value = attachedBinding.GetValueOrRegisterParentChanged(dependencyObject, i => this.UpdateValue(i));
+                var value = AttachedFork<T, TOwner>.GetValueOrRegisterParentChanged(
+                    dependencyObject,
+                    i => this.UpdateValue(i));
                 return value;
             }
 

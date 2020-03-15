@@ -1,14 +1,15 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="AttachedObject.cs" company="Anori Soft">
+// <copyright file="AttachedFork.cs" company="Anori Soft">
 // Copyright (c) Anori Soft. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
 
 namespace AttachedPropertyTests
 {
+    using System;
     using System.Windows;
 
-    public class AttachedObject<T> : DependencyObject
+    public class AttachedFork<T, TOwner> : DependencyObject
 
     {
         /// <summary>
@@ -17,18 +18,8 @@ namespace AttachedPropertyTests
         public static readonly DependencyProperty SetterProperty = DependencyProperty.RegisterAttached(
             "Setter",
             typeof(T),
-            typeof(AttachedObject<T>),
-            new PropertyMetadata(null, SetterChanged));
-
-        /// <summary>
-        ///     The parent notifiers
-        /// </summary>
-        private readonly ParentNotifiers parentNotifiers = new ParentNotifiers();
-
-        /// <summary>
-        ///     To use when no assembly is specified.
-        /// </summary>
-        public T FallbackValue { get; set; }
+            typeof(AttachedFork<T, TOwner>),
+            new PropertyMetadata(SetterChanged));
 
         /// <summary>
         ///     Setters the changed.
@@ -59,22 +50,43 @@ namespace AttachedPropertyTests
         ///     Get the assembly from the context, if possible.
         /// </summary>
         /// <param name="target">The target object.</param>
-        /// <returns>The assembly name, if available.</returns>
-        public T GetValue(DependencyObject target)
+        /// <param name="sourceChanged">The parent changed.</param>
+        /// <param name="fallbackValue">The fallback value.</param>
+        /// <returns>
+        ///     The assembly name, if available.
+        /// </returns>
+        public static T GetValueOrRegisterParentChanged(
+            DependencyObject target,
+            Action<T> sourceChanged,
+            T fallbackValue)
         {
             if (target == null)
             {
-                return this.FallbackValue;
+                return fallbackValue;
             }
 
-            var value = target.GetValueOrRegisterParentNotifier<T>(
-                SetterProperty,
-                this.ParentChangedAction,
-                this.parentNotifiers);
+            var value = GetValueOrRegisterParentChanged(target, sourceChanged);
             if (value == null)
             {
-                return this.FallbackValue;
+                return fallbackValue;
             }
+
+            return value;
+        }
+
+        /// <summary>
+        ///     Gets the value or register parent changed.
+        /// </summary>
+        /// <param name="target">The target.</param>
+        /// <param name="sourceChanged">The parent changed.</param>
+        /// <returns></returns>
+        public static T GetValueOrRegisterParentChanged(DependencyObject target, Action<T> sourceChanged)
+        {
+            var value = target.GetValueOrRegisterParentNotifierX<T, TOwner>(
+                SetterProperty,
+                ParentChangedAction,
+                sourceChanged,
+                new ParentNotifiers());
 
             return value;
         }
@@ -83,7 +95,7 @@ namespace AttachedPropertyTests
         ///     Parents the changed action.
         /// </summary>
         /// <param name="obj">The object.</param>
-        private void ParentChangedAction(DependencyObject obj)
+        private static void ParentChangedAction(DependencyObject obj)
         {
         }
     }

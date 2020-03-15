@@ -9,7 +9,8 @@
     Width="800"
     Height="450"
     mc:Ignorable="d">
-    <WrapPanel>
+    <StackPanel>
+        <Button Click="Button_Click">SwitchContent</Button>
         <!--<StackPanel x:Name="t1" local:AttachedString.Setter="abc">
         <Label>Test Text:</Label>
         <TextBlock Text="{local:AttachedStringGetterMarkup}" />
@@ -19,20 +20,44 @@
         </StackPanel>
          <TextBlock Text="{local:AttachedStringGetterMarkup}" />
         </StackPanel>-->
-        <StackPanel local:AttachedString.Setter="xyz">
-            <Label>Test Text:</Label>
-            <TextBlock Text="{local:AttachedStringGetterMarkup}" />
+
+        <StackPanel local:AttachedForkString.Setter="xyz">
+            <!--<Label>Style Text:</Label>
+            <StackPanel>
+                <TextBlock Text="{local:AttachedStringGetter}" />
+            </StackPanel>-->
+
+            <TextBox>
+                <!--<TextBox.Style>
+                    <Style TargetType="{x:Type TextBox}">
+                        <Setter Property="Text">
+                            <Setter.Value>
+                                <local:AttachedStringGetterMarkup />
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </TextBox.Style>-->
+            </TextBox>
         </StackPanel>
+
+        <!--<StackPanel local:AttachedString.Setter="xyz">
+            <Label>Test Text:</Label>
+            <TextBlock>
+                <TextBlock.Text>
+                    <local:AttachedStringGetterMarkup />
+                </TextBlock.Text>
+            </TextBlock>
+        </StackPanel>-->
         <TextBox x:Name="TextBox">Hallo</TextBox>
         <TextBox />
 
-        <StackPanel local:AttachedBindingString.Setter="{Binding Text, ElementName=TextBox}">
+        <!--<StackPanel local:AttachedForkString.Setter="{Binding Text, ElementName=TextBox}">
             <Label>Test Text:</Label>
             <TextBlock Text="{local:AttachedBindingStringGetter}" />
             <TextBlock Text="{local:AttachedBindingStringGetter}" />
             <TextBlock Text="{local:AttachedBindingStringGetter}" />
             <TextBlock Text="{local:AttachedBindingStringGetter}" />
             <TextBox Text="{local:AttachedBindingStringGetter}" />
-        </StackPanel>
-    </WrapPanel>
+        </StackPanel>-->
+    </StackPanel>
 </Window>

@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="MainWindow.xaml.cs" company="Anori Soft">
+// <copyright file="AttachedUserControl.xaml.cs" company="Anori Soft">
 // Copyright (c) Anori Soft. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
@@ -22,19 +22,13 @@ using System.Windows.Shapes;
 namespace AttachedPropertyTests
 {
     /// <summary>
-    ///     Interaction logic for MainWindow.xaml
+    ///     Interaction logic for UserControl.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class AttachedUserControl : UserControl
     {
-        public MainWindow()
+        public AttachedUserControl()
         {
             this.InitializeComponent();
-        }
-
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
-            var dialog = new SwitchContentWindow();
-            dialog.ShowDialog();
         }
     }
 }
